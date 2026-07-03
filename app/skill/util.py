@@ -20,6 +20,15 @@ from . import data
 from .apl import add_apl
 
 
+def get_ma_auth():
+    """Return a (username, password) tuple for Music Assistant basic auth, or None."""
+    user = get_env_secret('MA_USERNAME')
+    pwd = get_env_secret('MA_PASSWORD')
+    if user and pwd:
+        return (user, pwd)
+    return None
+
+
 def get_ma_hostname(raise_on_http_scheme=True):
     """Read and sanitize MA_HOSTNAME environment variable and return a https:// hostname or empty string.
 
@@ -139,10 +148,11 @@ def play(url, offset, text, response_builder, supports_apl=False):
         else:
             # Ensure the resource exists and appears playable. Try HEAD first, fall back to GET.
             try:
-                head_resp = requests.head(url, allow_redirects=True, timeout=5)
+                ma_auth = get_ma_auth()
+                head_resp = requests.head(url, allow_redirects=True, timeout=5, auth=ma_auth)
                 resp = head_resp
                 if head_resp.status_code >= 400:
-                    resp = requests.get(url, stream=True, allow_redirects=True, timeout=5)
+                    resp = requests.get(url, stream=True, allow_redirects=True, timeout=5, auth=ma_auth)
 
                 if resp.status_code >= 400:
                     logging.error('Audio URL returned HTTP %s: %s', resp.status_code, url)
